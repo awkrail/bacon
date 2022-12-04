@@ -22,11 +22,14 @@ from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.data import build_detection_test_loader
 from detectron2.data.datasets import register_coco_instances
 
+# OCR
+import easyocr
+
 class Predictor:
     def __init__(self):
         cfg = self.init_cfg()
         self.layout_predictor = DefaultPredictor(cfg)
-        self.ocr = None
+        self.ocr_reader = easyocr.Reader(['en'], gpu=False)
 
     def init_cfg(self):
         cfg = get_cfg()
@@ -41,11 +44,17 @@ class Predictor:
 
     def layout_predict(self, image):
         image = cv2.imread(filename)
-        output = self.layout_predictor(image)
-        return image, output
+        layout = self.layout_predictor(image)
+        return image, layout
 
     def ocr(self, text_image):
-        pass # TODO: Run OCR to extract text
+        characters = self.ocr_reader.readtext(text_image, detail=0)
+        return characters
+
+def is_target_class(category):
+    return category in ['Caption', 'Footnote', 'Page-footer',
+                        'Page-header', 'Section-header', 'Text', 'Title']
+
 
 if __name__ == "__main__":
     predictor = Predictor()
@@ -56,6 +65,25 @@ if __name__ == "__main__":
     dataset_dicts = DatasetCatalog.get("pdf_layout_val")
     val_layout_metadata = MetadataCatalog.get("pdf_layout_val")
 
+    classes = val_layout_metadata.thing_classes
+
     for i, d in enumerate(dataset_dicts[:5]):
         filename = d["file_name"]
-        image, output = predictor.predict(filename)
+        image, layout = predictor.layout_predict(filename)
+        
+        pred_boxes = layout['instances'].pred_boxes
+        categories = layout['instances'].pred_classes
+
+        output_json = {}
+
+        for j, (pred_box, category) in enumerate(zip(pred_boxes, categories)):
+            x1, y1, x2, y2 = [int(i) for i in pred_box.tolist()]
+            output_json['bbox']['coordinate'] = {'x1':x1, 'y1':y1, 'x2':x2, 'y2':y2}
+
+            if is_target_class(classes[category.item()]):
+                cropped_img = image[y1:y2, x1:x2]
+                cv2.imwrite("images/image_{}_{}.png".format(i, j), cropped_img)
+                text_filename = "images/image_{}_{}.png".format(i, j)
+                text = predictor.ocr(text_filename)
+                output_json['']
+
