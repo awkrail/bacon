@@ -34,13 +34,9 @@ cfg.DATASETS.TRAIN = ("pdf_layout_train",)
 cfg.DATASETS.TEST = ()
 cfg.DATALOADER.NUM_WORKERS = 2
 cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml")
-cfg.SOLVER.IMS_PER_BATCH = 32
-cfg.SOLVER.BASE_LR = 0.00025
 cfg.SOLVER.CHECKPOINT_PERIOD = 100
-cfg.SOLVER.MAX_ITER = 90000
-cfg.SOLVER.STEPS = []
-cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 128
-cfg.MODEL.ROI_HEADS.NUM_CLASSES = 11 # page. 4
+cfg.SOLVER.MAX_ITER = 100000
+cfg.MODEL.ROI_HEADS.NUM_CLASSES = 11
 cfg.OUTPUT_DIR = "/mnt/LSTA6/data/nishimura/DocLayNet/Models"
 
 os.makedirs(cfg.OUTPUT_DIR, exist_ok=True)

@@ -39,8 +39,7 @@ cfg.MODEL.ROI_HEADS.NUM_CLASSES = 11 # page. 4
 cfg.OUTPUT_DIR = "/mnt/LSTA6/data/nishimura/DocLayNet/Models"
 cfg.MODEL.DEVICE='cpu'
 
-cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_0025299.pth")
-cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
+cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_0054599.pth")
 predictor = DefaultPredictor(cfg)
 
 val_layout_metadata = MetadataCatalog.get("pdf_layout_val")
