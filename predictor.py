@@ -18,18 +18,17 @@ from detectron2.engine import DefaultTrainer
 
 from detectron2.structures import BoxMode
 from detectron2.utils.visualizer import ColorMode
+from detectron2.data.detection_utils import read_image, convert_image_to_rgb
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.data import build_detection_test_loader
 from detectron2.data.datasets import register_coco_instances
 
-# OCR
-import easyocr
+from PIL import Image
 
 class Predictor:
     def __init__(self):
         cfg = self.init_cfg()
         self.layout_predictor = DefaultPredictor(cfg)
-        self.ocr_reader = easyocr.Reader(['en'], gpu=False)
 
     def init_cfg(self):
         cfg = get_cfg()
@@ -41,14 +40,18 @@ class Predictor:
         cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
         cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_0054599.pth")
         return cfg
+    
+    def predict(self, pdf_filename):
+        # TODO: first, adopt the method to 1-page PDF
+        pass
 
     def layout_predict(self, image):
-        image = cv2.imread(filename)
+        image = read_image(filename, format="BGR")
         layout = self.layout_predictor(image)
         return image, layout
 
     def ocr(self, text_image):
-        characters = self.ocr_reader.readtext(text_image, detail=0)
+        characters = self.ocr_reader.readtext(text_image)
         return characters
 
 def is_target_class(category):
@@ -78,12 +81,13 @@ if __name__ == "__main__":
 
         for j, (pred_box, category) in enumerate(zip(pred_boxes, categories)):
             x1, y1, x2, y2 = [int(i) for i in pred_box.tolist()]
-            output_json['bbox']['coordinate'] = {'x1':x1, 'y1':y1, 'x2':x2, 'y2':y2}
-
             if is_target_class(classes[category.item()]):
                 cropped_img = image[y1:y2, x1:x2]
-                cv2.imwrite("images/image_{}_{}.png".format(i, j), cropped_img)
-                text_filename = "images/image_{}_{}.png".format(i, j)
-                text = predictor.ocr(text_filename)
-                output_json['']
+                import ipdb; ipdb.set_trace()
+                image = convert_image_to_rgb(image)
+                Image.fromarray(image).save("./test.png")
+                #cv2.imwrite("images/image_{}_{}.png".format(i, j), cropped_img)
+                #text_filename = "images/image_{}_{}.png".format(i, j)
+                #text = predictor.ocr(text_filename)
+                #output_json['']
 
