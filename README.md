@@ -1,6 +1,6 @@
-# bacon
-Yet another Japanese PDF document analyzer
-## This repo is actively developed by me now
+# 🥓　bacon
+🥓 Yet another Japanese PDF document analyzer
+### This repo is actively developed by me now
 
 # Requirements
 ```
