@@ -1,8 +1,15 @@
 from layout_predictor import LayoutPredictor
 from pdf_analyzer import PDFAnalyzer
+from coordinate_helper import (
+    convert_bbox_mediabox, 
+    convert_char_bboxes_to_raw_img_size,                        
+    convert_layouts_to_raw_img_size
+)
+from visualizer import visualize
 
 # visualize
 from PIL import ImageDraw, Image
+from pdf2image import convert_from_path
 
 class bacon:
     def __init__(self):
@@ -13,34 +20,35 @@ class bacon:
         self.colors = [(255,0,0), (0,0,255), (0,255,0), (255,255,0), (0,255,255),
                        (255,0,255), (128,128,0), (0,128,128), (128,0,128), (128,0,0),
                        (0,0,128)]
+        self.pred_image_size = (1025, 1025) # paper definition
 
-    def analyze(self, file_name):
-        img_layout_pairs = self.layout_predictor.predict(file_name)
-        _, _, raw_image_size = img_layout_pairs[0] # adhoc
-        char_bbox_list = self.pdf_analyzer.analyze(file_name, raw_image_size)
-        return img_layout_pairs, char_bbox_list
+    def integrate_chars_with_layouts(self, bbox_dict_list, layouts, image_sizes):
+        char_boxes_list, layouts = self.scale_raw_img_size(bbox_dict_list, layouts, image_sizes)
+        return char_boxes_list, layouts
 
-    def visualize(self, img_layout_pairs, char_bbox_list):
-        for image_layout in img_layout_pairs:
-            image, layout, raw_image_size = image_layout
-            draw = ImageDraw.Draw(image)
+    def scale_raw_img_size(self, bbox_dict_list, layouts, image_sizes):
+        scaled_char_boxes_list, scaled_layouts = [], []
+        for bbox_dict, layout, image_size in zip(bbox_dict_list, layouts, image_sizes):
+            char_bboxes = convert_char_bboxes_to_raw_img_size(bbox_dict, image_size)
+            layout = convert_layouts_to_raw_img_size(layout, self.pred_image_size, image_size)
+            scaled_char_boxes_list.append(char_bboxes)
+            scaled_layouts.append(layout)
+        return scaled_char_boxes_list, scaled_layouts
 
-            # first, layout prediction
-            pred_bboxes = layout['instances'].pred_boxes
-            pred_categories = layout['instances'].pred_classes
-            
-            for bbox, category in zip(pred_bboxes, pred_categories):
-                draw.rectangle(bbox.tolist(), outline=self.colors[category.item()])    
-            raw_sized_image = image.resize(raw_image_size)
-            raw_sized_image.save("./raw_sized_image.png")
+    def analyze(self, filename):
+        pdf_images = convert_from_path(filename)
+        image_sizes = [image.size for image in pdf_images]
+        
+        # layout prediction / extract char-level bboxes from PDF
+        layouts = self.layout_predictor.predict(pdf_images)
+        bbox_dict_list = self.pdf_analyzer.extract_char_bbox(filename)
 
-        raw_sized_image = Image.open("./raw_sized_image.png")
-        draw = ImageDraw.Draw(raw_sized_image)
-        for char, bbox in char_bbox_list:
-            draw.rectangle(bbox, outline=(0,0,0))
-        raw_sized_image.save("./raw_sized_with_chars.png")
+        # integrate the results
+        char_bboxes, layouts = self.integrate_chars_with_layouts(bbox_dict_list, layouts, image_sizes)
+        visualize(char_bboxes[0], layouts[0], pdf_images[0], self.categories, self.colors)
+        #output = self.jsonify(layouts_with_texts)
+        #return output
 
 if __name__ == "__main__":
     bacon = bacon()
-    img_layout_pairs, char_bbox_list = bacon.analyze("../test_pdf_files/c0dc81a3477ac31579cc4ecc7e2086d487996e344a7cd0c474528871aa5ac28b.pdf")
-    bacon.visualize(img_layout_pairs, char_bbox_list)
+    bacon.analyze("../test_pdf_files/c0dc81a3477ac31579cc4ecc7e2086d487996e344a7cd0c474528871aa5ac28b.pdf")

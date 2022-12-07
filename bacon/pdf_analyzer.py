@@ -36,29 +36,15 @@ class PDFAnalyzer:
         self.rsrcmgr = PDFResourceManager()
         self.device = PageAnalyzer(self.rsrcmgr)
         self.interpreter = PDFPageInterpreter(self.rsrcmgr, self.device)
-    
-    def analyze(self, filename, image_size):
-        bbox_list = []
+
+    def extract_char_bbox(self, filename):
+        bbox_dict_list = []
         with open(filename, "rb") as fb:
             for page in PDFPage.get_pages(fb):
+                bbox_dict = { "mediabox" : page.mediabox[2:], "bboxes": [] }
                 self.interpreter.process_page(page)
                 for char in self.device.get_characters():
                     text, bbox = char
-                    bbox = PDFAnalyzer.convert_coordinates(bbox, page.mediabox[2:], image_size) # page.mediabox = [0, 0, w, h]
-                    bbox_list.append([text, bbox])
-        return bbox_list
-
-    @staticmethod
-    def convert_coordinates(bbox, mediabox, image_size):
-        """
-        Because the PDF's origin coordinates are bottom left, I have to convert it to upper left for image processing.
-        In addition, scaling the coordinates to images is necessary.
-        """
-        x1, y1, x2, y2 = bbox
-        x1, x2 = PDFAnalyzer.scale([x1, x2], (image_size[0]/mediabox[0]))
-        y1, y2 = PDFAnalyzer.scale([y1, y2], (image_size[1]/mediabox[1]))
-        return [x1, image_size[1]-y1, x2, image_size[1]-y2]
-    
-    @staticmethod
-    def scale(axis, ratio):
-        return [axis[0]*ratio, axis[1]*ratio]
+                    bbox_dict["bboxes"].append([text, bbox])
+                bbox_dict_list.append(bbox_dict)
+        return bbox_dict_list
