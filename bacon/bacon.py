@@ -72,19 +72,22 @@ class bacon:
 
     def analyze(self, filename):
         pdf_images = convert_from_path(filename)
-        image_sizes = [image.size for image in pdf_images]
-        
-        # layout prediction / extract char-level bboxes from PDF
-        layouts = self.layout_predictor.predict(pdf_images)
-        bbox_dict_list = self.pdf_analyzer.extract_char_bbox(filename)
 
-        # integrate the results
-        #char_bboxes, layouts = self.integrate_chars_with_layouts(bbox_dict_list, layouts, image_sizes)
-        no_overlapped_chars = self.integrate_chars_with_layouts(bbox_dict_list, layouts, image_sizes)
-        
-        visualize(no_overlapped_chars, layouts[0], pdf_images[0], self.categories, self.colors)
-        #output = self.jsonify(layouts_with_texts)
-        #return output
+        # layout prediction / extract text-line bboxes for PDF
+        for i, pdf_image in enumerate(pdf_images):
+            image_size = pdf_image.size
+            layout = self.layout_predictor.predict(pdf_image)
+            textlines = self.pdf_analyzer.extract_textlines(filename, page_num=i)
+            
+            import ipdb; ipdb.set_trace()
+            # TODO: integrate results
+            # integrate the results
+            #char_bboxes, layouts = self.integrate_chars_with_layouts(bbox_dict_list, layouts, image_sizes)
+            no_overlapped_chars = self.integrate_chars_with_layouts(bbox_dict_list, layouts, image_sizes)
+            
+            visualize(no_overlapped_chars, layouts[0], pdf_images[0], self.categories, self.colors)
+            #output = self.jsonify(layouts_with_texts)
+            #return output
 
 if __name__ == "__main__":
     bacon = bacon()

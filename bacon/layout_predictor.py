@@ -34,13 +34,9 @@ class LayoutPredictor:
         cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_0054599.pth")
         return cfg
     
-    def predict(self, pdf_images):
-        layouts = [self.layout_predict(pdf_image) for pdf_image in pdf_images]
-        return layouts
-
-    def layout_predict(self, image):
-        image = image.convert("RGB").resize(self.input_img_size)
-        bgr_image = LayoutPredictor.convert_rgb_to_bgr(image)
+    def predict(self, pdf_image):
+        pdf_image = pdf_image.convert("RGB").resize(self.input_img_size)
+        bgr_image = LayoutPredictor.convert_rgb_to_bgr(pdf_image)
         layout = self.layout_predictor(bgr_image)
         return layout
 
