@@ -17,6 +17,7 @@ class PDFAnalyzer:
                             text = text_line.get_text()
                             bbox = text_line.bbox
                             text_lines.append({
+                                "mediabox": page.bbox[2:], # (w, h)
                                 "text": text,
                                 "bbox": bbox
                             })

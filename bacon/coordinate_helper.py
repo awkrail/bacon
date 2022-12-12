@@ -1,8 +1,9 @@
-def convert_char_bboxes_to_raw_img_size(bbox_dict, image_size):
-    mediabox = bbox_dict["mediabox"]
-    char_bboxes = bbox_dict["bboxes"]
-    char_bboxes = [(char, convert_bbox_mediabox(bbox, mediabox, image_size))for (char, bbox) in char_bboxes]
-    return char_bboxes
+def convert_textlines_to_raw_img_size(textlines, image_size):
+    return [{
+        "mediabox": textline["mediabox"],
+        "bbox": convert_bbox_mediabox(textline["bbox"], textline["mediabox"], image_size),
+        "text": textline["text"]
+    } for textline in textlines]
 
 def convert_layouts_to_raw_img_size(layout, pred_image_size, image_size):
     layout['instances'].pred_boxes.tensor[:, 0] *= (image_size[0]/pred_image_size[0])

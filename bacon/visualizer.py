@@ -1,6 +1,6 @@
 from PIL import Image, ImageDraw
 
-def visualize(char_bboxes, layout, pdf_image, categories, colors):
+def visualize(textlines, layout, pdf_image, categories, colors):
     """
     visualize single PDF file
     """
@@ -12,6 +12,7 @@ def visualize(char_bboxes, layout, pdf_image, categories, colors):
         cat_name = categories[pred_category.item()]
         draw.rectangle(pred_box.tolist(), outline=colors[pred_category.item()], width=5)
 
-    for char, bbox in char_bboxes:
-        draw.rectangle(bbox, outline=(0,0,0), width=1)
+    for textline in textlines:
+        bbox = textline["bbox"]
+        draw.rectangle(bbox, outline=(0,0,0), width=3)
     pdf_image.save("./test.png")
