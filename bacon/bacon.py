@@ -38,7 +38,6 @@ class bacon:
 
         pred_boxes = layout['instances'].pred_boxes
         pred_categories = layout['instances'].pred_classes
-
         return layout, textlines
         """
         outputs = []
