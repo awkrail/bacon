@@ -1,18 +1,23 @@
 from PIL import Image, ImageDraw
 
-def visualize(textlines, layout, pdf_image, categories, colors):
+def compute_center(coordinate):
+    x1, y1, x2, y2 = coordinate
+    center_x = (x2 + x1) / 2
+    center_y = (y2 + y1) / 2
+    return center_x, center_y
+
+def visualize(text_json, layout_json, pdf_image, color_dict):
     """
     visualize single PDF file
     """
     draw = ImageDraw.Draw(pdf_image)
     # add layout
-    pred_boxes = layout['instances'].pred_boxes
-    pred_categories = layout['instances'].pred_classes
-    for pred_category, pred_box in zip(pred_categories, pred_boxes):
-        cat_name = categories[pred_category.item()]
-        draw.rectangle(pred_box.tolist(), outline=colors[pred_category.item()], width=5)
+    for l_name, layout in layout_json.items():
+        color = color_dict[l_name.split("_")[0]]
+        center_x, center_y = compute_center(layout["coordinate"])
+        draw.rectangle(layout["coordinate"], outline=color, width=5)
+        draw.text((center_x, center_y), l_name, 'red')
 
-    for textline in textlines:
-        bbox = textline["bbox"]
-        draw.rectangle(bbox, outline=(0,0,0), width=3)
+    for t_name, text in text_json.items():
+        draw.rectangle(text["coordinate"], outline=(0,0,0), width=3)
     pdf_image.save("./test.png")

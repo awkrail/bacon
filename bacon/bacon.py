@@ -4,7 +4,7 @@ from coordinate_helper import (
     convert_bbox_mediabox, 
     convert_textlines_to_raw_img_size,                        
     convert_layouts_to_raw_img_size,
-    compute_overlap
+    compute_IoU
 )
 from visualizer import visualize
 
@@ -21,17 +21,8 @@ class bacon:
         self.colors = [(255,0,0), (0,0,255), (0,255,0), (255,255,0), (0,255,255),
                        (255,0,255), (128,128,0), (0,128,128), (128,0,128), (128,0,0),
                        (0,0,128)]
+        self.color_dicts = {cat:color for cat, color in zip(self.categories, self.colors)}
         self.pred_image_size = (1025, 1025) # paper definition
-        self.overlap_threshold = 0.8
-
-    def is_text_category(self, category_id):
-        return self.categories[category_id.item()] in ['Caption', 'Footnote', 'List-item', 'Page-footer',
-                                                       'Page-header', 'Section-header', 'Table', 'Text', 'Title']
-
-    def is_overlapped_threshold(self, pred_box, char_box):
-        char_area = (char_box[2] - char_box[0]) * (char_box[3] - char_box[1])
-        overlapped_area = compute_overlap(pred_box, char_box)
-        return overlapped_area/char_area < self.overlap_threshold
 
     def integrate_layout_and_textlines(self, layout, textlines, image_size):
         layout, textlines = self.scale_raw_img_size(layout, textlines, image_size)
@@ -47,7 +38,18 @@ class bacon:
         return layout_json, text_json
     
     def compute_inclusion_relation(self, layout_json, text_json):
-        import ipdb; ipdb.set_trace()
+        # layout -> texts
+        for l_name, layout in layout_json.items():
+            l_coordinate, category = layout["coordinate"], layout["category"]
+            layout["inclusion_texts"] = {}
+            for t_name, text in text_json.items():
+                text.setdefault("inclusion_layouts", {})
+                t_coordinate = text["coordinate"]
+                iou = compute_IoU(l_coordinate, t_coordinate)
+                if iou > 0:
+                    layout["inclusion_texts"][t_name] = iou
+                    text["inclusion_layouts"][l_name] = iou
+        return layout_json, text_json
 
     def scale_raw_img_size(self, layout, textlines, image_size):
         layout = convert_layouts_to_raw_img_size(layout, self.pred_image_size, image_size)
@@ -90,7 +92,7 @@ class bacon:
                 "texts" : text_json,
                 "layout" : layout_json
             }
-            #visualize(textlines, layout, pdf_image, self.categories, self.colors)
+            visualize(text_json, layout_json, pdf_image, self.color_dicts)
         return output_json
 
 if __name__ == "__main__":
