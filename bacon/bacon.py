@@ -33,50 +33,65 @@ class bacon:
         overlapped_area = compute_overlap(pred_box, char_box)
         return overlapped_area/char_area < self.overlap_threshold
 
-    def integrate_chars_with_layouts(self, layout, textlines, image_size):
+    def integrate_layout_and_textlines(self, layout, textlines, image_size):
         layout, textlines = self.scale_raw_img_size(layout, textlines, image_size)
-
         pred_boxes = layout['instances'].pred_boxes
         pred_categories = layout['instances'].pred_classes
-        return layout, textlines
-        """
-        outputs = []
-        for char_boxes, layout in zip(char_boxes_list, layouts):
-            pred_boxes = layout['instances'].pred_boxes
-            pred_categories = layout['instances'].pred_classes
 
-            for pred_box, pred_category in zip(pred_boxes, pred_categories):
-                if self.is_text_category(pred_category):
-                    box_output = self.group_up_with_box(pred_box, char_boxes)
-                    return box_output
-                    #outputs.append(box_output)
-                else:
-                    box_output = {
-                        'coordinate': pred_box.tolist(),
-                        'category': self.categories[pred_category.item()],
-                        'text': None
-                    }
-                    outputs.append(box_output)
-        return outputs
-        """
+        # convert layout / text to output form
+        layout_json = self.jsonify_layout(pred_boxes, pred_categories)
+        text_json = self.jsonify_textlines(textlines)
+
+        # compute inclusion relationship
+        layout_json, text_json = self.compute_inclusion_relation(layout_json, text_json)
+        return layout_json, text_json
+    
+    def compute_inclusion_relation(self, layout_json, text_json):
+        import ipdb; ipdb.set_trace()
 
     def scale_raw_img_size(self, layout, textlines, image_size):
         layout = convert_layouts_to_raw_img_size(layout, self.pred_image_size, image_size)
         textlines = convert_textlines_to_raw_img_size(textlines, image_size)
         return layout, textlines
 
+    def jsonify_textlines(self, textlines):
+        output = {}
+        for i, text in enumerate(textlines):
+            output["text_" + str(i)] = {
+                'coordinate': text['bbox'],
+                'text': text['text']
+            }
+        return output
+
+    def jsonify_layout(self, pred_boxes, pred_categories):
+        output = {}
+        for i, (pred_box, pred_category) in enumerate(zip(pred_boxes, pred_categories)):
+            category_name = self.categories[pred_category.item()]
+            pred_box = pred_box.tolist()
+            output[category_name + "_" + str(i)] = {
+                'coordinate': pred_box,
+                'category': category_name,
+            }
+        return output
+
     def analyze(self, filename):
         pdf_images = convert_from_path(filename)
 
         # layout prediction / extract text-line bboxes for PDF
+        output_json = {}
         for i, pdf_image in enumerate(pdf_images):
             image_size = pdf_image.size
             layout = self.layout_predictor.predict(pdf_image)
             textlines = self.pdf_analyzer.extract_textlines(filename, page_num=i)
             
             # TODO: integrate results
-            layout, textlines = self.integrate_chars_with_layouts(layout, textlines, image_size)
-            visualize(textlines, layout, pdf_image, self.categories, self.colors)
+            layout_json, text_json = self.integrate_layout_and_textlines(layout, textlines, image_size)
+            output_json["page_" + str(i)] = {
+                "texts" : text_json,
+                "layout" : layout_json
+            }
+            #visualize(textlines, layout, pdf_image, self.categories, self.colors)
+        return output_json
 
 if __name__ == "__main__":
     bacon = bacon()
